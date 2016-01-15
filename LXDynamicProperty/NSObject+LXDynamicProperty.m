@@ -12,6 +12,15 @@
 @import SceneKit.SceneKitTypes;
 #import "NSObject+LXDynamicProperty.h"
 
+@implementation NSNumber (LXCGLoatSupport)
+
+- (CGFloat)CGFloatValue
+{
+    return CGFLOAT_IS_DOUBLE ? [self doubleValue] : [self floatValue];
+}
+
+@end
+
 @interface __LXObjectWrapper : NSObject {
 @public
     __weak id _weakObject;
@@ -20,6 +29,13 @@
 @end
 @implementation __LXObjectWrapper
 @end
+
+// CLLocationCoordinate2D 和 MKCoordinateSpan 均为此种类型，@encode() 编码均为 {?=dd}，无法分辨，
+// 因此无法针对性地使用 valueWith... 方法，所以统一使用自定义的同类型结构体进行处理。
+typedef struct {
+    double x;
+    double y;
+} LXCoordinate2D;
 
 typedef struct {
     SEL setter;
@@ -392,20 +408,20 @@ static void __LXCopyMethodTypeForTypeEncode(const char *typeEncode, char **sette
 
 #pragma mark - 动态方法实现 -
 
-#define LXBaseTypeDynamicIMP(TypeName, BaseType) \
-static void __lx_##TypeName##_dynamicSetterIMP(id self, SEL _cmd, BaseType newValue) \
+#define LXBaseTypeDynamicIMP(typeName, baseType) \
+static void __lx_##typeName##_dynamicSetterIMP(id self, SEL _cmd, baseType newValue) \
 { \
     CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap]; \
     const char *getterSel = CFDictionaryGetValue(selMap, _cmd); \
     objc_setAssociatedObject(self, getterSel, @(newValue), OBJC_ASSOCIATION_RETAIN_NONATOMIC); \
 } \
-static BaseType __lx_##TypeName##_dynamicGetterIMP(id self, SEL _cmd) \
+static baseType __lx_##typeName##_dynamicGetterIMP(id self, SEL _cmd) \
 { \
-    return [objc_getAssociatedObject(self, _cmd) TypeName##Value]; \
+    return [objc_getAssociatedObject(self, _cmd) typeName##Value]; \
 }
 
-#define LXStructTypeDynamicIMP(StructType) \
-static void __lx_##StructType##_dynamicSetterIMP(id self, SEL _cmd, StructType newValue) \
+#define LXStructTypeDynamicIMP(type) \
+static void __lx_##type##_dynamicSetterIMP(id self, SEL _cmd, typeof(type) newValue) \
 { \
     CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap]; \
 \
@@ -419,12 +435,14 @@ static void __lx_##StructType##_dynamicSetterIMP(id self, SEL _cmd, StructType n
         getterSel = CFDictionaryGetValue(selMap, sel_getUid(originalSetterName)); \
     } \
 \
-    NSValue *value = [NSValue valueWith##StructType:newValue]; \
+    NSValue *value = [NSValue value:&newValue withObjCType:@encode(typeof(type))]; \
     objc_setAssociatedObject(self, getterSel, value, OBJC_ASSOCIATION_RETAIN_NONATOMIC); \
 } \
-static StructType __lx_##StructType##_dynamicGetterIMP(id self, SEL _cmd) \
+static typeof(type) __lx_##type##_dynamicGetterIMP(id self, SEL _cmd) \
 { \
-    return [objc_getAssociatedObject(self, _cmd) StructType##Value]; \
+    typeof(type) value; \
+    [objc_getAssociatedObject(self, _cmd) getValue:&value]; \
+    return value; \
 }
 
 LXBaseTypeDynamicIMP(int, int)
@@ -434,6 +452,7 @@ LXBaseTypeDynamicIMP(long, long)
 LXBaseTypeDynamicIMP(short, short)
 LXBaseTypeDynamicIMP(float, float)
 LXBaseTypeDynamicIMP(double, double)
+LXBaseTypeDynamicIMP(CGFloat, CGFloat)
 LXBaseTypeDynamicIMP(integer, NSInteger)
 LXBaseTypeDynamicIMP(longLong, long long)
 LXBaseTypeDynamicIMP(unsignedInt, unsigned int)
@@ -443,6 +462,7 @@ LXBaseTypeDynamicIMP(unsignedLong, unsigned long)
 LXBaseTypeDynamicIMP(unsignedShort, unsigned short)
 LXBaseTypeDynamicIMP(unsignedLongLong, unsigned long long)
 
+LXStructTypeDynamicIMP(NSRange)
 LXStructTypeDynamicIMP(CGRect)
 LXStructTypeDynamicIMP(CGSize)
 LXStructTypeDynamicIMP(CGPoint)
@@ -457,74 +477,7 @@ LXStructTypeDynamicIMP(CMTimeMapping)
 LXStructTypeDynamicIMP(SCNVector3)
 LXStructTypeDynamicIMP(SCNVector4)
 LXStructTypeDynamicIMP(SCNMatrix4)
-
-//static void __lx_SCNVector3_dynamicSetterIMP(id self, SEL _cmd, SCNVector3 newValue)
-//{
-//    CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap];
-//
-//    const char *getterSel = CFDictionaryGetValue(selMap, _cmd);
-//
-//    /* 若因 KVO 而生成了子类，很多结构体的 setter 会被加上 _original_ 前缀 */
-//    if (getterSel == NULL) { 
-//        const char *setterName = sel_getName(_cmd);
-//        char originalSetterName[strlen(setterName) - 9];
-//        strcpy(originalSetterName, setterName + 10);
-//        getterSel = CFDictionaryGetValue(selMap, sel_getUid(originalSetterName));
-//    }
-//
-//    NSValue *value = [NSValue valueWithSCNVector3:newValue];
-//    objc_setAssociatedObject(self, getterSel, value, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-//}
-//static SCNVector3 __lx_SCNVector3_dynamicGetterIMP(id self, SEL _cmd)
-//{
-//    return [objc_getAssociatedObject(self, _cmd) SCNVector3Value];
-//}
-
-// NSRange 格式比较特殊。。。
-static void __lx_NSRange_dynamicSetterIMP(id self, SEL _cmd, NSRange newValue)
-{
-    CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap];
-    const char *getterSel = CFDictionaryGetValue(selMap, _cmd);
-    NSValue *value = [NSValue valueWithRange:newValue];
-    objc_setAssociatedObject(self, getterSel, value, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-static NSRange __lx_NSRange_dynamicGetterIMP(id self, SEL _cmd)
-{
-    return [objc_getAssociatedObject(self, _cmd) rangeValue];
-}
-
-// CLLocationCoordinate2D 和 MKCoordinateSpan 均为此种类型，@encode() 编码均为 {?=dd}，无法分辨，
-// 因此无法针对性地使用 valueWith... 方法，所以统一使用自定义的同类型结构体进行处理。
-typedef struct {
-    double x;
-    double y;
-} LXCoordinate2D;
-
-static void __lx_LXCoordinate2D_dynamicSetterIMP(id self, SEL _cmd, LXCoordinate2D newValue)
-{
-    CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap];
-
-    const char *getterSel = CFDictionaryGetValue(selMap, _cmd);
-
-    if (getterSel == NULL) {
-        const char *setterName = sel_getName(_cmd);
-        char originalSetterName[strlen(setterName) - 9];
-        strcpy(originalSetterName, setterName + 10);
-        getterSel = CFDictionaryGetValue(selMap, sel_getUid(originalSetterName));
-    }
-
-    NSValue *value = [NSValue value:&newValue withObjCType:@encode(LXCoordinate2D)];
-    
-    objc_setAssociatedObject(self, getterSel, value, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-static LXCoordinate2D __lx_LXCoordinate2D_dynamicGetterIMP(id self, SEL _cmd)
-{
-    LXCoordinate2D value;
-    [objc_getAssociatedObject(self, _cmd) getValue:&value];
-    return value;
-}
+LXStructTypeDynamicIMP(LXCoordinate2D)
 
 static void __lx_id_retain_dynamicSetterIMP(id self, SEL _cmd, id newValue)
 {
@@ -582,8 +535,7 @@ static id __lx_id_assign_dynamicGetterIMP(id self, SEL _cmd)
 
 static const LXMethodIMP LXBaseTypeAndIMPMap[] = {
     [LXBaseTypeBOOL]             = { (IMP)__lx_bool_dynamicSetterIMP, (IMP)__lx_bool_dynamicGetterIMP },
-    [LXBaseTypeCGFloat]          = { CGFLOAT_IS_DOUBLE ? (IMP)__lx_double_dynamicSetterIMP : (IMP)__lx_float_dynamicSetterIMP,
-                                     CGFLOAT_IS_DOUBLE ? (IMP)__lx_double_dynamicGetterIMP : (IMP)__lx_float_dynamicGetterIMP, },
+    [LXBaseTypeCGFloat]          = { (IMP)__lx_CGFloat_dynamicSetterIMP, (IMP)__lx_CGFloat_dynamicGetterIMP },
     [LXBaseTypeNSInteger]        = { (IMP)__lx_integer_dynamicSetterIMP, (IMP)__lx_integer_dynamicGetterIMP },
     [LXBaseTypeNSUInteger]       = { (IMP)__lx_unsignedInteger_dynamicSetterIMP, (IMP)__lx_unsignedInteger_dynamicGetterIMP },
 
