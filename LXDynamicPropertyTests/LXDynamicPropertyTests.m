@@ -547,7 +547,7 @@
     XCTAssertTrue(span.latitudeDelta == span2.latitudeDelta &&
                   span.longitudeDelta == span2.longitudeDelta);
 
-//    以下三个属性使用 setValue:forKey: 设置时值会变为其他的，不知道为什么。。。
+//    以下三个属性使用 setValue:forKey: 设值时值并不准确。。。
 //    SCNVector3 vector3 = { 1, 2, 3 };
 //    [_tester setValue:[NSValue valueWithSCNVector3:vector3] forKey:@"lx_vector3"];
 //    XCTAssertTrue(SCNVector3EqualToVector3([[_tester valueForKey:@"lx_vector3"] SCNVector3Value], vector3));

@@ -6,13 +6,12 @@
 //  Copyright © 2016年 从今以后. All rights reserved.
 //
 
+@import UIKit.UIGeometry;
 @import MapKit.MKGeometry;
 @import ObjectiveC.runtime;
 @import AVFoundation.AVTime;
 @import SceneKit.SceneKitTypes;
 #import "NSObject+LXDynamicProperty.h"
-#import "LXDynamicProperty+ImplementationMacro.h"
-#import "LXDynamicProperty+CustomStructSupport.h"
 
 @implementation NSNumber (LXCGLoatSupport)
 
@@ -56,7 +55,6 @@ typedef NS_ENUM(NSUInteger, LXBaseType) {
     LXBaseTypeNSUInteger,
 
     LXBaseTypeInt,
-    LXBaseTypeBool,
     LXBaseTypeLong,
     LXBaseTypeFloat,
     LXBaseTypeDouble,
@@ -65,32 +63,11 @@ typedef NS_ENUM(NSUInteger, LXBaseType) {
     LXBaseTypeUnsignedLong,
     LXBaseTypeUnsignedLongLong,
 
+    LXBaseTypeBool,
     LXBaseTypeChar,
     LXBaseTypeShort,
     LXBaseTypeUnsignedChar,
     LXBaseTypeUnsignedShort,
-};
-
-static const char *const LXBaseTypeMapping[] = {
-    [LXBaseTypeBOOL]             = @encode(BOOL),       // char 或 bool
-    [LXBaseTypeCGFloat]          = @encode(CGFloat),    // float 或 double
-    [LXBaseTypeNSInteger]        = @encode(NSInteger),  // int 或 long
-    [LXBaseTypeNSUInteger]       = @encode(NSUInteger), // unsigned int 或 unsigned long
-
-    [LXBaseTypeInt]              = @encode(int),
-    [LXBaseTypeBool]             = @encode(bool),
-    [LXBaseTypeLong]             = @encode(long),
-    [LXBaseTypeFloat]            = @encode(float),
-    [LXBaseTypeDouble]           = @encode(double),
-    [LXBaseTypeLongLong]         = @encode(long long),
-    [LXBaseTypeUnsignedInt]      = @encode(unsigned int),
-    [LXBaseTypeUnsignedLong]     = @encode(unsigned long),
-    [LXBaseTypeUnsignedLongLong] = @encode(unsigned long long),
-
-    [LXBaseTypeChar]             = @encode(char),
-    [LXBaseTypeShort]            = @encode(short),
-    [LXBaseTypeUnsignedChar]     = @encode(unsigned char),
-    [LXBaseTypeUnsignedShort]    = @encode(unsigned short),
 };
 
 typedef NS_ENUM(NSUInteger, LXStructType) {
@@ -119,7 +96,29 @@ typedef NS_ENUM(NSUInteger, LXStructType) {
     LXStructTypeSCNMatrix4,
 };
 
-static const char *const LXStructTypeMapping[] = {
+static const char * const LXBaseTypeMap[] = {
+    [LXBaseTypeBOOL]             = @encode(BOOL),       // char 或 bool
+    [LXBaseTypeCGFloat]          = @encode(CGFloat),    // float 或 double
+    [LXBaseTypeNSInteger]        = @encode(NSInteger),  // int 或 long
+    [LXBaseTypeNSUInteger]       = @encode(NSUInteger), // unsigned int 或 unsigned long
+
+    [LXBaseTypeInt]              = @encode(int),
+    [LXBaseTypeLong]             = @encode(long),
+    [LXBaseTypeFloat]            = @encode(float),
+    [LXBaseTypeDouble]           = @encode(double),
+    [LXBaseTypeLongLong]         = @encode(long long),
+    [LXBaseTypeUnsignedInt]      = @encode(unsigned int),
+    [LXBaseTypeUnsignedLong]     = @encode(unsigned long),
+    [LXBaseTypeUnsignedLongLong] = @encode(unsigned long long),
+
+    [LXBaseTypeBool]             = @encode(bool),
+    [LXBaseTypeChar]             = @encode(char),
+    [LXBaseTypeShort]            = @encode(short),
+    [LXBaseTypeUnsignedChar]     = @encode(unsigned char),
+    [LXBaseTypeUnsignedShort]    = @encode(unsigned short),
+};
+
+static const char * const LXStructTypeMap[] = {
     [LXStructTypeNSRange]                = @encode(NSRange),
 
     [LXStructTypeCGRect]                 = @encode(CGRect),
@@ -145,197 +144,185 @@ static const char *const LXStructTypeMapping[] = {
     [LXStructTypeSCNMatrix4]             = @encode(SCNMatrix4),
 };
 
+static size_t LXDynamicPropertyPrefixLength;
+static const char * const kLXKVOSetterPrefix = "_original_";
+static const char * const kLXKVOClassPrefix  = "NSKVONotifying_";
+
 @implementation NSObject (LXDynamicProperty)
-
-static size_t kDynamicPropertyPrefixLength;
-
-#pragma mark - 方法交换 -
 
 + (void)load
 {
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        kDynamicPropertyPrefixLength = strlen(LXDynamicPropertyPrefix);
-        method_exchangeImplementations(class_getClassMethod(self, @selector(resolveInstanceMethod:)),
-                                       class_getClassMethod(self, @selector(__lx_resolveInstanceMethod:)));
-    });
+    LXDynamicPropertyPrefixLength = strlen(LXDynamicPropertyPrefix);
 }
 
 #pragma mark - 动态方法决议 -
 
-+ (BOOL)__lx_resolveInstanceMethod:(SEL)sel
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wobjc-protocol-method-implementation"
++ (BOOL)resolveInstanceMethod:(SEL)sel
 {
-    if ([self conformsToProtocol:@protocol(LXDynamicProperty)]) {
-        if ([self __lx_addDynamicPropertyIfNeed]) {
-            return YES;
-        }
+    if (!class_isMetaClass(self) &&
+        class_conformsToProtocol(self, @protocol(LXDynamicProperty)) &&
+        [self __lx_addDynamicPropertyIfNeed]) {
+        return YES;
     }
-    return [self __lx_resolveInstanceMethod:sel];
+    return NO; // NSObject 的实现就是直接返回 NO 而已
 }
-
-+ (void)__lx_setDidAddDynamicProperty:(BOOL)added
-{
-    objc_setAssociatedObject(self, @selector(__lx_didAddDynamicProperty), @(added), 1);
-}
-
-+ (BOOL)__lx_didAddDynamicProperty
-{
-    return [objc_getAssociatedObject(self, _cmd) boolValue];
-}
-
-+ (CFMutableDictionaryRef)__lx_getSetterAndGetterSelMap
-{
-    CFMutableDictionaryRef setterAndGetterSelMap =
-    (__bridge CFMutableDictionaryRef)objc_getAssociatedObject(self, _cmd);
-
-    if (setterAndGetterSelMap == NULL) {
-
-        // 当前类由于 KVO 而变成了原先类的子类
-        if (!strncmp(class_getName(self), "NSKVONotifying_", 15)) {
-
-            // 获取父类绑定的字典
-            Class originalClass = class_getSuperclass(self);
-            setterAndGetterSelMap = (__bridge CFMutableDictionaryRef)objc_getAssociatedObject(originalClass, _cmd);
-
-            // 若父类字典也为空，说明尚未创建字典，创建并绑定到父类上，避免所有观察者移除而变回父类后没有字典
-            if (setterAndGetterSelMap == NULL) {
-                setterAndGetterSelMap = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
-                objc_setAssociatedObject(originalClass, _cmd, (__bridge id)setterAndGetterSelMap, 0);
-            }
-
-            // 绑定字典到子类上，下次就有字典用了
-            objc_setAssociatedObject(self, _cmd, (__bridge id)setterAndGetterSelMap, 0);
-
-        } else {
-            // 当前类是正常的类，此时字典若为空则创建字典并绑定
-            setterAndGetterSelMap = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
-            objc_setAssociatedObject(self, _cmd, (__bridge id)setterAndGetterSelMap, 0);
-        }
-    }
-
-    return setterAndGetterSelMap;
-}
-
-+ (void)__lx_printSetterAndGetterSelMap
-{
-    CFMutableDictionaryRef dict = [self __lx_getSetterAndGetterSelMap];
-
-    CFIndex count = CFDictionaryGetCount(dict);
-
-    const void *keys[count];
-    const void *values[count];
-
-    CFDictionaryGetKeysAndValues(dict, keys, values);
-
-    for (CFIndex i = 0; i < count; ++i) {
-        printf("%s %s\n", keys[i], values[i]);
-    }
-}
+#pragma clang diagnostic pop
 
 + (BOOL)__lx_addDynamicPropertyIfNeed
 {
     if ([self __lx_didAddDynamicProperty]) {
         return NO;
     }
-    [self __lx_setDidAddDynamicProperty:YES];
 
     uint outCount;
     objc_property_t *properties = class_copyPropertyList(self, &outCount);
     for (uint i = 0; i < outCount; ++i) {
-        [self __lx_addIMPForProperty:properties[i]];
+        if (__LXValidateDynamicProperty(properties[i])) {
+            [self __lx_addIMPForProperty:properties[i]];
+        }
     }
     free(properties);
 
     return YES;
 }
 
++ (BOOL)__lx_didAddDynamicProperty
+{
+    BOOL didAdd = [objc_getAssociatedObject(self, _cmd) boolValue];
+    if (!didAdd) {
+        printf("__AddDynamicProperty =========== %p %s %s\n",
+               self, class_isMetaClass(self) ? "isMetaClass" : "",
+               class_getName(self));
+        objc_setAssociatedObject(self, _cmd, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    return didAdd;
+}
+
+static BOOL __LXValidateDynamicProperty(objc_property_t property)
+{
+    char *dynamic = property_copyAttributeValue(property, "D");
+    if (!dynamic) {
+        return NO;
+    }
+    free(dynamic);
+
+    const char *propertyName = property_getName(property);
+    return !strncmp(LXDynamicPropertyPrefix, propertyName, LXDynamicPropertyPrefixLength);
+}
+
 + (void)__lx_addIMPForProperty:(objc_property_t)property
 {
-    if (!__LXValidateDynamicProperty(property)) {
-        return;
-    }
-
     char *typeEncode = property_copyAttributeValue(property, "T");
 
-    if (typeEncode[0] == '{') {
-        size_t count = sizeof(LXStructTypeMapping) / sizeof(char *);
-        for (size_t i = 0; i < count; ++i) {
-            if (!strcmp(LXStructTypeMapping[i], typeEncode)) { 
-
-                char *setterType, *getterType;
-                __LXCopyMethodTypeForTypeEncode(typeEncode, &setterType, &getterType);
-
-                LXMethodSEL sel = [self __lx_registerSelForProperty:property];
-                LXMethodIMP imp = LXStructTypeAndIMPMap[i];
-
-                class_addMethod(self, sel.setter, imp.setter, setterType);
-                class_addMethod(self, sel.getter, imp.getter, getterType);
-
-                free(setterType);
-                free(getterType);
-
-                goto end;
-            }
-        }
-    } else if (typeEncode[0] == '@') {
-
-        LXMethodSEL sel = [self __lx_registerSelForProperty:property];
-
-        // strong
-        char *retainPolicy = property_copyAttributeValue(property, "&");
-        if (retainPolicy) {
-            free(retainPolicy);
-            class_addMethod(self, sel.setter, (IMP)__lx_id_retain_dynamicSetterIMP, "v@:@");
-            class_addMethod(self, sel.getter, (IMP)__lx_id_retain_dynamicGetterIMP, "@@:");
-            goto end;
-        }
-
-        // copy
-        char *copyPolicy = property_copyAttributeValue(property, "C");
-        if (copyPolicy) {
-            free(copyPolicy);
-            class_addMethod(self, sel.setter, (IMP)__lx_id_copy_dynamicSetterIMP, "v@:@");
-            class_addMethod(self, sel.getter, (IMP)__lx_id_copy_dynamicGetterIMP, "@@:");
-            goto end;
-        }
-
-        // weak
-        char *weakPolicy = property_copyAttributeValue(property, "W");
-        if (weakPolicy) {
-            free(weakPolicy);
-            class_addMethod(self, sel.setter, (IMP)__lx_id_weak_dynamicSetterIMP, "v@:@");
-            class_addMethod(self, sel.getter, (IMP)__lx_id_weak_dynamicGetterIMP, "@@:");
-            goto end;
-        }
-
-        // unsafe_unretained
-        class_addMethod(self, sel.setter, (IMP)__lx_id_assign_dynamicSetterIMP, "v@:@");
-        class_addMethod(self, sel.getter, (IMP)__lx_id_assign_dynamicGetterIMP, "@@:");
-
+    if (typeEncode[0] == '@') {
+        [self __lx_addIMPForObjectTypeProperty:property];
     } else if (strlen(typeEncode) == 1) {
-        size_t count = sizeof(LXBaseTypeMapping) / sizeof(char *);
-        for (size_t i = 0; i < count; ++i) {
-            if (LXBaseTypeMapping[i][0] == typeEncode[0]) {
-
-                char *setterType, *getterType;
-                __LXCopyMethodTypeForTypeEncode(typeEncode, &setterType, &getterType);
-
-                LXMethodSEL sel = [self __lx_registerSelForProperty:property];
-                LXMethodIMP imp = LXBaseTypeAndIMPMap[i];
-
-                class_addMethod(self, sel.setter, imp.setter, setterType);
-                class_addMethod(self, sel.getter, imp.getter, getterType);
-
-                free(setterType);
-                free(getterType);
-
-                goto end;
-            }
-        }
+        [self __lx_addIMPForBaseTypeProperty:property typeEncode:typeEncode];
+    } else if (typeEncode[0] == '{') {
+        [self __lx_addIMPForStructTypeProperty:property typeEncode:typeEncode];
     }
 
-end:;
     free(typeEncode);
+}
+
++ (void)__lx_addIMPForObjectTypeProperty:(objc_property_t)property
+{
+    const char *setterType = "v@:@"; // void id SEL id
+    const char *getterType = "@@:";  // id id SEL
+
+    LXMethodSEL sel = [self __lx_registerSelForProperty:property];
+
+    void (^_addMethodIMP)(IMP, IMP) = ^(IMP setter, IMP getter) {
+        class_addMethod(self, sel.setter, setter, setterType);
+        class_addMethod(self, sel.getter, getter, getterType);
+    };
+
+    uint outCount;
+    objc_property_attribute_t *attributeList = property_copyAttributeList(property, &outCount);
+    for (uint i = 0; i < outCount; ++i) {
+        switch (attributeList[i].name[0]) {
+            case '&':
+                _addMethodIMP((IMP)__lx_id_retain_dynamicSetterIMP, (IMP)__lx_id_retain_dynamicGetterIMP);
+                goto done;
+            case 'C':
+                _addMethodIMP((IMP)__lx_id_copy_dynamicSetterIMP, (IMP)__lx_id_copy_dynamicGetterIMP);
+                goto done;
+            case 'W':
+                _addMethodIMP((IMP)__lx_id_weak_dynamicSetterIMP, (IMP)__lx_id_weak_dynamicGetterIMP);
+                goto done;
+        }
+    }
+    _addMethodIMP((IMP)__lx_id_assign_dynamicSetterIMP, (IMP)__lx_id_assign_dynamicGetterIMP);
+done:
+    free(attributeList);
+}
+
++ (void)__lx_addIMPForBaseTypeProperty:(objc_property_t)property typeEncode:(const char *)typeEncode
+{
+    size_t count = sizeof(LXBaseTypeMap) / sizeof(char *);
+
+    for (size_t i = 0; i < count; ++i) {
+
+        if (LXBaseTypeMap[i][0] == typeEncode[0]) {
+
+            char *setterType, *getterType;
+            __LXCopyMethodTypeForTypeEncode(typeEncode, &setterType, &getterType);
+
+            LXMethodSEL sel = [self __lx_registerSelForProperty:property];
+            LXMethodIMP imp = LXBaseTypeAndIMPMap[i];
+
+            class_addMethod(self, sel.setter, imp.setter, setterType);
+            class_addMethod(self, sel.getter, imp.getter, getterType);
+
+            free(setterType);
+            free(getterType);
+
+            return;
+        }
+    }
+}
+
++ (void)__lx_addIMPForStructTypeProperty:(objc_property_t)property typeEncode:(const char *)typeEncode
+{
+    size_t count = sizeof(LXStructTypeMap) / sizeof(char *);
+
+    for (size_t i = 0; i < count; ++i) {
+
+        if (!strcmp(LXStructTypeMap[i], typeEncode)) {
+
+            char *setterType, *getterType;
+            __LXCopyMethodTypeForTypeEncode(typeEncode, &setterType, &getterType);
+
+            LXMethodSEL sel = [self __lx_registerSelForProperty:property];
+            LXMethodIMP imp = LXStructTypeAndIMPMap[i];
+
+            class_addMethod(self, sel.setter, imp.setter, setterType);
+            class_addMethod(self, sel.getter, imp.getter, getterType);
+
+            free(setterType);
+            free(getterType);
+
+            return;
+        }
+    }
+}
+
+static void __LXCopyMethodTypeForTypeEncode(const char *typeEncode, char **setterType, char **getterType)
+{
+    size_t setterLength = strlen(typeEncode) + 4;
+    size_t getterLength = strlen(typeEncode) + 3;
+
+    // 格式形如 v@:i
+    *setterType = calloc(setterLength, sizeof(char));
+    strcpy(*setterType, "v@:");
+    strcat(*setterType, typeEncode);
+
+    // 格式形如 i@:
+    *getterType = calloc(getterLength, sizeof(char));
+    strcpy(*getterType, typeEncode);
+    strcat(*getterType, "@:");
 }
 
 + (LXMethodSEL)__lx_registerSelForProperty:(objc_property_t)property
@@ -355,20 +342,6 @@ end:;
     }
 
     return (LXMethodSEL){ setter, getter };
-}
-
-#pragma mark - 工具函数 -
-
-static BOOL __LXValidateDynamicProperty(objc_property_t property)
-{
-    char *dynamic = property_copyAttributeValue(property, "D");
-    if (dynamic == NULL) {
-        return NO;
-    }
-    free(dynamic);
-
-    const char *propertyName = property_getName(property);
-    return !strncmp(LXDynamicPropertyPrefix, propertyName, kDynamicPropertyPrefixLength);
 }
 
 static char *__LXCopySetterNameForProperty(objc_property_t property)
@@ -392,22 +365,6 @@ static char *__LXCopySetterNameForProperty(objc_property_t property)
     return setterName;
 }
 
-static void __LXCopyMethodTypeForTypeEncode(const char *typeEncode, char **setterType, char **getterType)
-{
-    size_t setterLength = strlen(typeEncode) + 4;
-    size_t getterLength = strlen(typeEncode) + 3;
-
-    // 格式形如 v@:i
-    *setterType = calloc(setterLength, sizeof(char));
-    strcpy(*setterType, "v@:");
-    strcat(*setterType, typeEncode);
-
-    // 格式形如 i@:
-    *getterType = calloc(getterLength, sizeof(char));
-    strcpy(*getterType, typeEncode);
-    strcat(*getterType, "@:");
-}
-
 static SEL __LXGetGetterSelForSetterSel(id self, SEL _cmd)
 {
     CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap];
@@ -415,17 +372,59 @@ static SEL __LXGetGetterSelForSetterSel(id self, SEL _cmd)
     SEL getterSel = (SEL)CFDictionaryGetValue(selMap, _cmd);
 
     /* 若因 KVO 而生成了子类，有的结构体的 setter 会被加上 _original_ 前缀 */
-    if (getterSel == NULL) { \
+    if (getterSel == NULL) {
         const char *setterName = sel_getName(_cmd);
-        char originalSetterName[strlen(setterName) - 9];
-        strcpy(originalSetterName, setterName + 10);
-        getterSel = (SEL)CFDictionaryGetValue(selMap, sel_getUid(originalSetterName));
+        size_t length = strlen(kLXKVOSetterPrefix);
+        if (!strncmp(setterName, kLXKVOSetterPrefix, length)) {
+            getterSel = (SEL)CFDictionaryGetValue(selMap, sel_getUid(setterName + length));
+        }
     }
 
     return getterSel;
 }
 
++ (CFMutableDictionaryRef)__lx_getSetterAndGetterSelMap
+{
+    CFMutableDictionaryRef setterAndGetterSelMap =
+    (__bridge CFMutableDictionaryRef)objc_getAssociatedObject(self, _cmd);
+
+    if (setterAndGetterSelMap) {
+        return setterAndGetterSelMap;
+    }
+
+    if (!strncmp(class_getName(self), kLXKVOClassPrefix, strlen(kLXKVOClassPrefix))) {
+
+        Class originalClass = class_getSuperclass(self);
+        setterAndGetterSelMap = (__bridge CFMutableDictionaryRef)objc_getAssociatedObject(originalClass, _cmd);
+
+        if (!setterAndGetterSelMap) {
+            setterAndGetterSelMap = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+            objc_setAssociatedObject(originalClass, _cmd, (__bridge id)setterAndGetterSelMap, 0);
+        }
+
+        objc_setAssociatedObject(self, _cmd, (__bridge id)setterAndGetterSelMap, 0);
+
+    } else {
+        setterAndGetterSelMap = CFDictionaryCreateMutable(NULL, 0, NULL, NULL);
+        objc_setAssociatedObject(self, _cmd, (__bridge id)setterAndGetterSelMap, 0);
+    }
+    
+    return setterAndGetterSelMap;
+}
+
 #pragma mark - 动态方法实现 -
+
+#define LXBaseTypeDynamicIMP(typeName, baseType) \
+static void __lx_##typeName##_dynamicSetterIMP(id self, SEL _cmd, baseType newValue) \
+{ \
+    SEL getterSel = __LXGetGetterSelForSetterSel(self, _cmd); \
+    objc_setAssociatedObject(self, getterSel, @(newValue), OBJC_ASSOCIATION_RETAIN_NONATOMIC); \
+} \
+\
+static baseType __lx_##typeName##_dynamicGetterIMP(id self, SEL _cmd) \
+{ \
+    return [objc_getAssociatedObject(self, _cmd) typeName##Value]; \
+}
 
 LXBaseTypeDynamicIMP(int, int)
 LXBaseTypeDynamicIMP(bool, bool)
@@ -444,6 +443,21 @@ LXBaseTypeDynamicIMP(unsignedLong, unsigned long)
 LXBaseTypeDynamicIMP(unsignedShort, unsigned short)
 LXBaseTypeDynamicIMP(unsignedLongLong, unsigned long long)
 
+#define LXStructTypeDynamicIMP(type) \
+static void __lx_##type##_dynamicSetterIMP(id self, SEL _cmd, type newValue) \
+{ \
+    SEL getterSel = __LXGetGetterSelForSetterSel(self, _cmd); \
+    NSValue *value = [NSValue value:&newValue withObjCType:@encode(type)]; \
+    objc_setAssociatedObject(self, getterSel, value, OBJC_ASSOCIATION_RETAIN_NONATOMIC); \
+} \
+\
+static type __lx_##type##_dynamicGetterIMP(id self, SEL _cmd) \
+{ \
+    type value; \
+    [objc_getAssociatedObject(self, _cmd) getValue:&value]; \
+    return value; \
+}
+
 LXStructTypeDynamicIMP(NSRange)
 LXStructTypeDynamicIMP(CGRect)
 LXStructTypeDynamicIMP(CGSize)
@@ -461,106 +475,91 @@ LXStructTypeDynamicIMP(SCNVector4)
 LXStructTypeDynamicIMP(SCNMatrix4)
 LXStructTypeDynamicIMP(LXCoordinate2D)
 
-static void __lx_id_retain_dynamicSetterIMP(id self, SEL _cmd, id newValue)
-{
-    const char *getterSel = CFDictionaryGetValue([object_getClass(self) __lx_getSetterAndGetterSelMap], _cmd);
-    objc_setAssociatedObject(self, getterSel, newValue, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+#define LXObjectTypeDynamicIMP_A(typeName, policy) \
+static void __lx_##typeName##_dynamicSetterIMP(id self, SEL _cmd, id newValue) \
+{ \
+    SEL getterSel = __LXGetGetterSelForSetterSel(self, _cmd); \
+    __LXObjectWrapper *wrapper = objc_getAssociatedObject(self, getterSel); \
+    if (!wrapper) { \
+        wrapper = [__LXObjectWrapper new]; \
+        objc_setAssociatedObject(self, getterSel, wrapper, OBJC_ASSOCIATION_RETAIN_NONATOMIC); \
+    } \
+    wrapper->_##policy##Object = newValue; \
+} \
+\
+static id __lx_##typeName##_dynamicGetterIMP(id self, SEL _cmd) \
+{ \
+    return ((__LXObjectWrapper *)objc_getAssociatedObject(self, _cmd))->_##policy##Object; \
 }
 
-static id __lx_id_retain_dynamicGetterIMP(id self, SEL _cmd)
-{
-    return objc_getAssociatedObject(self, _cmd);
+#define LXObjectTypeDynamicIMP_B(typeName, policy) \
+static void __lx_##typeName##_dynamicSetterIMP(id self, SEL _cmd, id newValue) \
+{ \
+    objc_setAssociatedObject(self, __LXGetGetterSelForSetterSel(self, _cmd), newValue, policy); \
+} \
+\
+static id __lx_##typeName##_dynamicGetterIMP(id self, SEL _cmd) \
+{ \
+    return objc_getAssociatedObject(self, _cmd); \
 }
 
-static void __lx_id_copy_dynamicSetterIMP(id self, SEL _cmd, id newValue)
-{
-    const char *getterSel = CFDictionaryGetValue([object_getClass(self) __lx_getSetterAndGetterSelMap], _cmd);
-    objc_setAssociatedObject(self, getterSel, newValue, OBJC_ASSOCIATION_COPY_NONATOMIC);
-}
+LXObjectTypeDynamicIMP_A(id_weak, weak)
+LXObjectTypeDynamicIMP_A(id_assign, assign)
+LXObjectTypeDynamicIMP_B(id_copy, OBJC_ASSOCIATION_COPY_NONATOMIC)
+LXObjectTypeDynamicIMP_B(id_retain, OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 
-static id __lx_id_copy_dynamicGetterIMP(id self, SEL _cmd)
-{
-    return objc_getAssociatedObject(self, _cmd);
-}
-
-static void __lx_id_weak_dynamicSetterIMP(id self, SEL _cmd, id newValue)
-{
-    const char *getterSel = CFDictionaryGetValue([object_getClass(self) __lx_getSetterAndGetterSelMap], _cmd);
-    __LXObjectWrapper *wrapper = objc_getAssociatedObject(self, getterSel);
-    if (!wrapper) {
-        wrapper = [__LXObjectWrapper new];
-        objc_setAssociatedObject(self, getterSel, wrapper, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-    wrapper->_weakObject = newValue;
-}
-
-static id __lx_id_weak_dynamicGetterIMP(id self, SEL _cmd)
-{
-    return ((__LXObjectWrapper *)objc_getAssociatedObject(self, _cmd))->_weakObject;
-}
-
-static void __lx_id_assign_dynamicSetterIMP(id self, SEL _cmd, id newValue)
-{
-    const char *getterSel = CFDictionaryGetValue([object_getClass(self) __lx_getSetterAndGetterSelMap], _cmd);
-    __LXObjectWrapper *wrapper = objc_getAssociatedObject(self, getterSel);
-    if (!wrapper) {
-        wrapper = [__LXObjectWrapper new];
-        objc_setAssociatedObject(self, getterSel, wrapper, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-    wrapper->_assignObject = newValue;
-}
-
-static id __lx_id_assign_dynamicGetterIMP(id self, SEL _cmd)
-{
-    return ((__LXObjectWrapper *)objc_getAssociatedObject(self, _cmd))->_assignObject;
+#define LXMethodIMP(typeName) { \
+    (IMP)__lx_##typeName##_dynamicSetterIMP, \
+    (IMP)__lx_##typeName##_dynamicGetterIMP, \
 }
 
 static const LXMethodIMP LXBaseTypeAndIMPMap[] = {
-    [LXBaseTypeBOOL]             = { (IMP)__lx_bool_dynamicSetterIMP, (IMP)__lx_bool_dynamicGetterIMP },
-    [LXBaseTypeCGFloat]          = { (IMP)__lx_CGFloat_dynamicSetterIMP, (IMP)__lx_CGFloat_dynamicGetterIMP },
-    [LXBaseTypeNSInteger]        = { (IMP)__lx_integer_dynamicSetterIMP, (IMP)__lx_integer_dynamicGetterIMP },
-    [LXBaseTypeNSUInteger]       = { (IMP)__lx_unsignedInteger_dynamicSetterIMP, (IMP)__lx_unsignedInteger_dynamicGetterIMP },
+    [LXBaseTypeBOOL]             = LXMethodIMP(bool),
+    [LXBaseTypeCGFloat]          = LXMethodIMP(CGFloat),
+    [LXBaseTypeNSInteger]        = LXMethodIMP(integer),
+    [LXBaseTypeNSUInteger]       = LXMethodIMP(unsignedInteger),
 
-    [LXBaseTypeInt]              = { (IMP)__lx_int_dynamicSetterIMP, (IMP)__lx_int_dynamicGetterIMP },
-    [LXBaseTypeBool]             = { (IMP)__lx_bool_dynamicSetterIMP, (IMP)__lx_bool_dynamicGetterIMP, },
-    [LXBaseTypeLong]             = { (IMP)__lx_long_dynamicSetterIMP, (IMP)__lx_long_dynamicGetterIMP },
-    [LXBaseTypeFloat]            = { (IMP)__lx_float_dynamicSetterIMP, (IMP)__lx_float_dynamicGetterIMP, },
-    [LXBaseTypeDouble]           = { (IMP)__lx_double_dynamicSetterIMP, (IMP)__lx_double_dynamicGetterIMP },
-    [LXBaseTypeLongLong]         = { (IMP)__lx_longLong_dynamicSetterIMP, (IMP)__lx_longLong_dynamicGetterIMP },
-    [LXBaseTypeUnsignedInt]      = { (IMP)__lx_unsignedInt_dynamicSetterIMP, (IMP)__lx_unsignedInt_dynamicGetterIMP },
-    [LXBaseTypeUnsignedLong]     = { (IMP)__lx_unsignedLong_dynamicSetterIMP, (IMP)__lx_unsignedLong_dynamicGetterIMP },
-    [LXBaseTypeUnsignedLongLong] = { (IMP)__lx_unsignedLongLong_dynamicSetterIMP, (IMP)__lx_unsignedLongLong_dynamicGetterIMP },
+    [LXBaseTypeInt]              = LXMethodIMP(int),
+    [LXBaseTypeLong]             = LXMethodIMP(long),
+    [LXBaseTypeFloat]            = LXMethodIMP(float),
+    [LXBaseTypeDouble]           = LXMethodIMP(double),
+    [LXBaseTypeLongLong]         = LXMethodIMP(longLong),
+    [LXBaseTypeUnsignedInt]      = LXMethodIMP(unsignedInt),
+    [LXBaseTypeUnsignedLong]     = LXMethodIMP(unsignedLong),
+    [LXBaseTypeUnsignedLongLong] = LXMethodIMP(unsignedLongLong),
 
-    [LXBaseTypeChar]             = { (IMP)__lx_char_dynamicSetterIMP, (IMP)__lx_char_dynamicGetterIMP },
-    [LXBaseTypeShort]            = { (IMP)__lx_short_dynamicSetterIMP, (IMP)__lx_short_dynamicGetterIMP },
-    [LXBaseTypeUnsignedChar]     = { (IMP)__lx_unsignedChar_dynamicSetterIMP, (IMP)__lx_unsignedChar_dynamicGetterIMP },
-    [LXBaseTypeUnsignedShort]    = { (IMP)__lx_unsignedShort_dynamicSetterIMP, (IMP)__lx_unsignedShort_dynamicGetterIMP },
+    [LXBaseTypeBool]             = LXMethodIMP(bool),
+    [LXBaseTypeChar]             = LXMethodIMP(char),
+    [LXBaseTypeShort]            = LXMethodIMP(short),
+    [LXBaseTypeUnsignedChar]     = LXMethodIMP(unsignedChar),
+    [LXBaseTypeUnsignedShort]    = LXMethodIMP(unsignedShort),
 };
 
 static const LXMethodIMP LXStructTypeAndIMPMap[] = {
-    [LXStructTypeNSRange]                = { (IMP)__lx_NSRange_dynamicSetterIMP, (IMP)__lx_NSRange_dynamicGetterIMP },
+    [LXStructTypeNSRange]                = LXMethodIMP(NSRange),
 
-    [LXStructTypeCGRect]                 = { (IMP)__lx_CGRect_dynamicSetterIMP, (IMP)__lx_CGRect_dynamicGetterIMP },
-    [LXStructTypeCGSize]                 = { (IMP)__lx_CGSize_dynamicSetterIMP, (IMP)__lx_CGSize_dynamicGetterIMP },
-    [LXStructTypeCGPoint]                = { (IMP)__lx_CGPoint_dynamicSetterIMP, (IMP)__lx_CGPoint_dynamicGetterIMP },
-    [LXStructTypeCGVector]               = { (IMP)__lx_CGVector_dynamicSetterIMP, (IMP)__lx_CGVector_dynamicGetterIMP },
-    [LXStructTypeCGAffineTransform]      = { (IMP)__lx_CGAffineTransform_dynamicSetterIMP, (IMP)__lx_CGAffineTransform_dynamicGetterIMP },
+    [LXStructTypeCGRect]                 = LXMethodIMP(CGRect),
 
-    [LXStructTypeUIEdgeInsets]           = { (IMP)__lx_UIEdgeInsets_dynamicSetterIMP, (IMP)__lx_UIEdgeInsets_dynamicGetterIMP },
-    [LXStructTypeUIOffset]               = { (IMP)__lx_UIOffset_dynamicSetterIMP, (IMP)__lx_UIOffset_dynamicGetterIMP },
+    [LXStructTypeCGSize]                 = LXMethodIMP(CGSize),
+    [LXStructTypeCGPoint]                = LXMethodIMP(CGPoint),
+    [LXStructTypeCGVector]               = LXMethodIMP(CGVector),
+    [LXStructTypeCGAffineTransform]      = LXMethodIMP(CGAffineTransform),
 
-    [LXStructTypeCATransform3D]          = { (IMP)__lx_CATransform3D_dynamicSetterIMP, (IMP)__lx_CATransform3D_dynamicGetterIMP },
+    [LXStructTypeUIEdgeInsets]           = LXMethodIMP(UIEdgeInsets),
+    [LXStructTypeUIOffset]               = LXMethodIMP(UIOffset),
 
-    [LXStructTypeCMTime]                 = { (IMP)__lx_CMTime_dynamicSetterIMP, (IMP)__lx_CMTime_dynamicGetterIMP },
-    [LXStructTypeCMTimeRange]            = { (IMP)__lx_CMTimeRange_dynamicSetterIMP, (IMP)__lx_CMTimeRange_dynamicGetterIMP },
-    [LXStructTypeCMTimeMapping]          = { (IMP)__lx_CMTimeMapping_dynamicSetterIMP, (IMP)__lx_CMTimeMapping_dynamicGetterIMP },
+    [LXStructTypeCATransform3D]          = LXMethodIMP(CATransform3D),
 
-    [LXStructTypeMKCoordinateSpan]       = { (IMP)__lx_LXCoordinate2D_dynamicSetterIMP, (IMP)__lx_LXCoordinate2D_dynamicGetterIMP },
-    [LXStructTypeCLLocationCoordinate2D] = { (IMP)__lx_LXCoordinate2D_dynamicSetterIMP, (IMP)__lx_LXCoordinate2D_dynamicGetterIMP },
+    [LXStructTypeCMTime]                 = LXMethodIMP(CMTime),
+    [LXStructTypeCMTimeRange]            = LXMethodIMP(CMTimeRange),
+    [LXStructTypeCMTimeMapping]          = LXMethodIMP(CMTimeMapping),
 
-    [LXStructTypeSCNVector3]             = { (IMP)__lx_SCNVector3_dynamicSetterIMP, (IMP)__lx_SCNVector3_dynamicGetterIMP },
-    [LXStructTypeSCNVector4]             = { (IMP)__lx_SCNVector4_dynamicSetterIMP, (IMP)__lx_SCNVector4_dynamicGetterIMP },
-    [LXStructTypeSCNMatrix4]             = { (IMP)__lx_SCNMatrix4_dynamicSetterIMP, (IMP)__lx_SCNMatrix4_dynamicGetterIMP },
+    [LXStructTypeMKCoordinateSpan]       = LXMethodIMP(LXCoordinate2D),
+    [LXStructTypeCLLocationCoordinate2D] = LXMethodIMP(LXCoordinate2D),
+
+    [LXStructTypeSCNVector3]             = LXMethodIMP(SCNVector3),
+    [LXStructTypeSCNVector4]             = LXMethodIMP(SCNVector4),
+    [LXStructTypeSCNMatrix4]             = LXMethodIMP(SCNMatrix4),
 };
 
 @end

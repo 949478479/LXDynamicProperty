@@ -13,14 +13,25 @@
 #import "NSObject+LXIntrospection.h"
 #import "ViewController.h"
 
+@interface LXObject : NSObject
+@end
+@implementation LXObject
+- (void)dealloc
+{
+    NSLog(@"delloc %@", self);
+}
+@end
+
 @interface ViewController () <LXDynamicProperty>
-@property (nonatomic) CGRect lx_rect;
-@property (nonatomic) ViewController *lx_strongObject;
-@property (nonatomic, weak) ViewController *lx_weakObjcet;
+@property (nonatomic) CGRect lx_rect1;
+@property (nonatomic) CGRect lx_rect2;
+@property (nonatomic) LXObject *lx_strongObject;
+@property (nonatomic, weak) LXObject *lx_weakObjcet;
 @end
 
 @implementation ViewController
-@dynamic lx_rect;
+@dynamic lx_rect1;
+@dynamic lx_rect2;
 @dynamic lx_weakObjcet;
 @dynamic lx_strongObject;
 
@@ -34,13 +45,15 @@
     [super viewDidLoad];
 
     NSLog(@"注册前的类：%@", object_getClass(self));
-    [self addObserver:self forKeyPath:@"lx_rect" options:0 context:(__bridge void *)self];
+    [self addObserver:self forKeyPath:@"lx_rect1" options:0 context:(__bridge void *)self];
+    [self addObserver:self forKeyPath:@"lx_rect2" options:0 context:(__bridge void *)self];
     [self addObserver:self forKeyPath:@"lx_weakObjcet" options:0 context:(__bridge void *)self];
     [self addObserver:self forKeyPath:@"lx_strongObject" options:0 context:(__bridge void *)self];
     NSLog(@"注册后的类：%@", object_getClass(self));
 
-    self.lx_rect = CGRectMake(1, 2, 3, 4);
-    self.lx_strongObject = [ViewController new];
+    self.lx_rect1 = CGRectMake(1, 2, 3, 4);
+    self.lx_rect2 = CGRectMake(4, 3, 2, 1);
+    self.lx_strongObject = [LXObject new];
     self.lx_weakObjcet = self.lx_strongObject;
 }
 
@@ -55,7 +68,8 @@
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
-    NSLog(@"lx_rect: %@", NSStringFromCGRect(self.lx_rect));
+    NSLog(@"lx_rect1: %@", NSStringFromCGRect(self.lx_rect1));
+    NSLog(@"lx_rect2: %@", NSStringFromCGRect(self.lx_rect2));
 
     NSLog(@"lx_strongObject: %@", self.lx_strongObject);
     NSLog(@"lx_weakObjcet: %@", self.lx_weakObjcet);
@@ -78,7 +92,8 @@
 
     NSLog(@"注销后的类：%@", object_getClass(self));
 
-    NSLog(@"lx_rect: %@", NSStringFromCGRect(self.lx_rect));
+    NSLog(@"lx_rect1: %@", NSStringFromCGRect(self.lx_rect1));
+    NSLog(@"lx_rect2: %@", NSStringFromCGRect(self.lx_rect2));
 
     self.view.window.rootViewController = nil;
 }
