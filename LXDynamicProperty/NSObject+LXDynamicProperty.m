@@ -11,6 +11,8 @@
 @import AVFoundation.AVTime;
 @import SceneKit.SceneKitTypes;
 #import "NSObject+LXDynamicProperty.h"
+#import "LXDynamicProperty+ImplementationMacro.h"
+#import "LXDynamicProperty+CustomStructSupport.h"
 
 @implementation NSNumber (LXCGLoatSupport)
 
@@ -406,44 +408,24 @@ static void __LXCopyMethodTypeForTypeEncode(const char *typeEncode, char **sette
     strcat(*getterType, "@:");
 }
 
-#pragma mark - 动态方法实现 -
+static SEL __LXGetGetterSelForSetterSel(id self, SEL _cmd)
+{
+    CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap];
 
-#define LXBaseTypeDynamicIMP(typeName, baseType) \
-static void __lx_##typeName##_dynamicSetterIMP(id self, SEL _cmd, baseType newValue) \
-{ \
-    CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap]; \
-    const char *getterSel = CFDictionaryGetValue(selMap, _cmd); \
-    objc_setAssociatedObject(self, getterSel, @(newValue), OBJC_ASSOCIATION_RETAIN_NONATOMIC); \
-} \
-static baseType __lx_##typeName##_dynamicGetterIMP(id self, SEL _cmd) \
-{ \
-    return [objc_getAssociatedObject(self, _cmd) typeName##Value]; \
-}
+    SEL getterSel = (SEL)CFDictionaryGetValue(selMap, _cmd);
 
-#define LXStructTypeDynamicIMP(type) \
-static void __lx_##type##_dynamicSetterIMP(id self, SEL _cmd, typeof(type) newValue) \
-{ \
-    CFMutableDictionaryRef selMap = [object_getClass(self) __lx_getSetterAndGetterSelMap]; \
-\
-    const char *getterSel = CFDictionaryGetValue(selMap, _cmd); \
-\
-    /* 若因 KVO 而生成了子类，很多结构体的 setter 会被加上 _original_ 前缀 */ \
+    /* 若因 KVO 而生成了子类，有的结构体的 setter 会被加上 _original_ 前缀 */
     if (getterSel == NULL) { \
-        const char *setterName = sel_getName(_cmd); \
-        char originalSetterName[strlen(setterName) - 9]; \
-        strcpy(originalSetterName, setterName + 10); \
-        getterSel = CFDictionaryGetValue(selMap, sel_getUid(originalSetterName)); \
-    } \
-\
-    NSValue *value = [NSValue value:&newValue withObjCType:@encode(typeof(type))]; \
-    objc_setAssociatedObject(self, getterSel, value, OBJC_ASSOCIATION_RETAIN_NONATOMIC); \
-} \
-static typeof(type) __lx_##type##_dynamicGetterIMP(id self, SEL _cmd) \
-{ \
-    typeof(type) value; \
-    [objc_getAssociatedObject(self, _cmd) getValue:&value]; \
-    return value; \
+        const char *setterName = sel_getName(_cmd);
+        char originalSetterName[strlen(setterName) - 9];
+        strcpy(originalSetterName, setterName + 10);
+        getterSel = (SEL)CFDictionaryGetValue(selMap, sel_getUid(originalSetterName));
+    }
+
+    return getterSel;
 }
+
+#pragma mark - 动态方法实现 -
 
 LXBaseTypeDynamicIMP(int, int)
 LXBaseTypeDynamicIMP(bool, bool)

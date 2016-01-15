@@ -33,6 +33,8 @@
 
 /* Begin PBXFileReference section */
 		18A4F6C61C485D4700D8DF76 /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = System/Library/Frameworks/SceneKit.framework; sourceTree = SDKROOT; };
+		18A4F6C81C48995000D8DF76 /* LXDynamicProperty+ImplementationMacro.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LXDynamicProperty+ImplementationMacro.h"; sourceTree = "<group>"; };
+		18C2F2A91C489CFE000C29A3 /* LXDynamicProperty+CustomStructSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LXDynamicProperty+CustomStructSupport.h"; sourceTree = "<group>"; };
 		18D53F331C48133A0015988E /* NSObject+LXIntrospection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+LXIntrospection.h"; sourceTree = "<group>"; };
 		18D53F341C48133A0015988E /* NSObject+LXIntrospection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+LXIntrospection.m"; sourceTree = "<group>"; };
 		18D53F381C4856B40015988E /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
@@ -118,6 +120,8 @@
 				18DA176C1C444AE6003A5E75 /* Info.plist */,
 				18DA175B1C444AE6003A5E75 /* Supporting Files */,
 				18DA17721C444B1F003A5E75 /* NSObject+LXDynamicProperty.h */,
+				18A4F6C81C48995000D8DF76 /* LXDynamicProperty+ImplementationMacro.h */,
+				18C2F2A91C489CFE000C29A3 /* LXDynamicProperty+CustomStructSupport.h */,
 				18DA17731C444B1F003A5E75 /* NSObject+LXDynamicProperty.m */,
 			);
 			path = LXDynamicProperty;

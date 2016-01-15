@@ -155,13 +155,13 @@
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         [self registerKVO];
+
+        NSArray *methods = [LXDynamicPropertyTester lx_instanceMethodDescriptionList];
+        NSLog(@"%lu, %@", methods.count, methods);
+
+        methods = [NSClassFromString(@"NSKVONotifying_LXDynamicPropertyTester") lx_instanceMethodDescriptionList];
+        NSLog(@"%lu, %@", methods.count, methods);
     });
-
-    NSArray *methods = [LXDynamicPropertyTester lx_instanceMethodDescriptionList];
-    NSLog(@"%lu, %@", methods.count, methods);
-
-    methods = [NSClassFromString(@"NSKVONotifying_LXDynamicPropertyTester") lx_instanceMethodDescriptionList];
-    NSLog(@"%lu, %@", methods.count, methods);
 }
 
 - (void)tearDown
