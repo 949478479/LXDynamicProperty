@@ -7,18 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		18A4F6C71C485D4700D8DF76 /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 18A4F6C61C485D4700D8DF76 /* SceneKit.framework */; };
 		18D53F351C48133A0015988E /* NSObject+LXIntrospection.m in Sources */ = {isa = PBXBuildFile; fileRef = 18D53F341C48133A0015988E /* NSObject+LXIntrospection.m */; };
-		18D53F3A1C4857020015988E /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 18D53F381C4856B40015988E /* MapKit.framework */; };
 		18DA175D1C444AE6003A5E75 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 18DA175C1C444AE6003A5E75 /* main.m */; };
 		18DA17601C444AE6003A5E75 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 18DA175F1C444AE6003A5E75 /* AppDelegate.m */; };
 		18DA17631C444AE6003A5E75 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 18DA17621C444AE6003A5E75 /* ViewController.m */; };
 		18DA17661C444AE6003A5E75 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 18DA17641C444AE6003A5E75 /* Main.storyboard */; };
 		18DA17681C444AE6003A5E75 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 18DA17671C444AE6003A5E75 /* Assets.xcassets */; };
 		18DA176B1C444AE6003A5E75 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 18DA17691C444AE6003A5E75 /* LaunchScreen.storyboard */; };
-		18DA17741C444B1F003A5E75 /* NSObject+LXDynamicProperty.m in Sources */ = {isa = PBXBuildFile; fileRef = 18DA17731C444B1F003A5E75 /* NSObject+LXDynamicProperty.m */; };
 		18DA17961C4537EC003A5E75 /* LXDynamicPropertyTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 18DA17951C4537EC003A5E75 /* LXDynamicPropertyTests.m */; };
 		18DA179F1C453B26003A5E75 /* LXDynamicPropertyTester.m in Sources */ = {isa = PBXBuildFile; fileRef = 18DA179E1C453B26003A5E75 /* LXDynamicPropertyTester.m */; };
+		18E340F81C4A078900E94B5C /* NSObject+LXDynamicProperty.m in Sources */ = {isa = PBXBuildFile; fileRef = 18E340EF1C4A078900E94B5C /* NSObject+LXDynamicProperty.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,10 +30,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		18A4F6C61C485D4700D8DF76 /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = System/Library/Frameworks/SceneKit.framework; sourceTree = SDKROOT; };
 		18D53F331C48133A0015988E /* NSObject+LXIntrospection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+LXIntrospection.h"; sourceTree = "<group>"; };
 		18D53F341C48133A0015988E /* NSObject+LXIntrospection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+LXIntrospection.m"; sourceTree = "<group>"; };
-		18D53F381C4856B40015988E /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		18DA17581C444AE6003A5E75 /* LXDynamicProperty.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LXDynamicProperty.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18DA175C1C444AE6003A5E75 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		18DA175E1C444AE6003A5E75 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -46,13 +42,13 @@
 		18DA17671C444AE6003A5E75 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		18DA176A1C444AE6003A5E75 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		18DA176C1C444AE6003A5E75 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		18DA17721C444B1F003A5E75 /* NSObject+LXDynamicProperty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+LXDynamicProperty.h"; sourceTree = "<group>"; };
-		18DA17731C444B1F003A5E75 /* NSObject+LXDynamicProperty.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+LXDynamicProperty.m"; sourceTree = "<group>"; };
 		18DA17931C4537EC003A5E75 /* LXDynamicPropertyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LXDynamicPropertyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		18DA17951C4537EC003A5E75 /* LXDynamicPropertyTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LXDynamicPropertyTests.m; sourceTree = "<group>"; };
 		18DA17971C4537ED003A5E75 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		18DA179D1C453B26003A5E75 /* LXDynamicPropertyTester.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXDynamicPropertyTester.h; sourceTree = "<group>"; };
 		18DA179E1C453B26003A5E75 /* LXDynamicPropertyTester.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXDynamicPropertyTester.m; sourceTree = "<group>"; };
+		18E340EE1C4A078900E94B5C /* NSObject+LXDynamicProperty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+LXDynamicProperty.h"; sourceTree = "<group>"; };
+		18E340EF1C4A078900E94B5C /* NSObject+LXDynamicProperty.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+LXDynamicProperty.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,8 +56,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				18A4F6C71C485D4700D8DF76 /* SceneKit.framework in Frameworks */,
-				18D53F3A1C4857020015988E /* MapKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,8 +81,6 @@
 		18DA174F1C444AE6003A5E75 = {
 			isa = PBXGroup;
 			children = (
-				18A4F6C61C485D4700D8DF76 /* SceneKit.framework */,
-				18D53F381C4856B40015988E /* MapKit.framework */,
 				18D53F321C48133A0015988E /* LXIntrospection */,
 				18DA175A1C444AE6003A5E75 /* LXDynamicProperty */,
 				18DA17941C4537EC003A5E75 /* LXDynamicPropertyTests */,
@@ -116,9 +108,8 @@
 				18DA17671C444AE6003A5E75 /* Assets.xcassets */,
 				18DA17691C444AE6003A5E75 /* LaunchScreen.storyboard */,
 				18DA176C1C444AE6003A5E75 /* Info.plist */,
+				18E340ED1C4A078900E94B5C /* LXDynamicProperty */,
 				18DA175B1C444AE6003A5E75 /* Supporting Files */,
-				18DA17721C444B1F003A5E75 /* NSObject+LXDynamicProperty.h */,
-				18DA17731C444B1F003A5E75 /* NSObject+LXDynamicProperty.m */,
 			);
 			path = LXDynamicProperty;
 			sourceTree = "<group>";
@@ -140,6 +131,15 @@
 				18DA17971C4537ED003A5E75 /* Info.plist */,
 			);
 			path = LXDynamicPropertyTests;
+			sourceTree = "<group>";
+		};
+		18E340ED1C4A078900E94B5C /* LXDynamicProperty */ = {
+			isa = PBXGroup;
+			children = (
+				18E340EE1C4A078900E94B5C /* NSObject+LXDynamicProperty.h */,
+				18E340EF1C4A078900E94B5C /* NSObject+LXDynamicProperty.m */,
+			);
+			path = LXDynamicProperty;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -245,8 +245,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				18D53F351C48133A0015988E /* NSObject+LXIntrospection.m in Sources */,
-				18DA17741C444B1F003A5E75 /* NSObject+LXDynamicProperty.m in Sources */,
 				18DA17631C444AE6003A5E75 /* ViewController.m in Sources */,
+				18E340F81C4A078900E94B5C /* NSObject+LXDynamicProperty.m in Sources */,
 				18DA17601C444AE6003A5E75 /* AppDelegate.m in Sources */,
 				18DA175D1C444AE6003A5E75 /* main.m in Sources */,
 			);

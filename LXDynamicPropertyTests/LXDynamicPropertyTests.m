@@ -150,6 +150,8 @@
 {
     [super setUp];
 
+//    LXSetDynamicPropertyPrefix("");
+
     _tester = [LXDynamicPropertyTester new];
 
     static dispatch_once_t onceToken;
@@ -536,14 +538,18 @@
     XCTAssertTrue(CMTimeRangeEqual([[_tester valueForKey:@"lx_timeMapping"] CMTimeMappingValue].source, timeMapping.source));
 
     CLLocationCoordinate2D coordinate = { 1, 2 };
-    [_tester setValue:[NSValue valueWithMKCoordinate:coordinate] forKey:@"lx_coordinate"];
-    CLLocationCoordinate2D coordinate2 = [[_tester valueForKey:@"lx_coordinate"] MKCoordinateValue];
+    [_tester setValue:[NSValue valueWithBytes:&coordinate objCType:@encode(CLLocationCoordinate2D)]
+               forKey:@"lx_coordinate"];
+    CLLocationCoordinate2D coordinate2;
+    [[_tester valueForKey:@"lx_coordinate"] getValue:&coordinate2];
     XCTAssertTrue(coordinate2.latitude == coordinate.latitude &&
                   coordinate2.longitude == coordinate.longitude);
 
     MKCoordinateSpan span = { 3, 4 };
-    [_tester setValue:[NSValue valueWithMKCoordinateSpan:span] forKey:@"lx_coordinateSpan"];
-    MKCoordinateSpan span2 = [[_tester valueForKey:@"lx_coordinateSpan"] MKCoordinateSpanValue];
+    [_tester setValue:[NSValue valueWithBytes:&span objCType:@encode(MKCoordinateSpan)]
+               forKey:@"lx_coordinateSpan"];
+    MKCoordinateSpan span2;
+    [[_tester valueForKey:@"lx_coordinateSpan"] getValue:&span2];
     XCTAssertTrue(span.latitudeDelta == span2.latitudeDelta &&
                   span.longitudeDelta == span2.longitudeDelta);
 

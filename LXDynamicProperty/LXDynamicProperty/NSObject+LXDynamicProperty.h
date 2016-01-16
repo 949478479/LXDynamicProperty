@@ -6,7 +6,8 @@
 //  Copyright © 2016年 从今以后. All rights reserved.
 //
 
-static const char * const LXDynamicPropertyPrefix = "lx_";
-
 @protocol LXDynamicProperty
 @end
+
+const char * _Nonnull LXGetDynamicPropertyPrefix();
+void LXSetDynamicPropertyPrefix(const char * _Nonnull prefix);

@@ -144,16 +144,21 @@ static const char * const LXStructTypeMap[] = {
     [LXStructTypeSCNMatrix4]             = @encode(SCNMatrix4),
 };
 
-static size_t LXDynamicPropertyPrefixLength;
+static const char * LXDynamicPropertyPrefix  = "lx_";
 static const char * const kLXKVOSetterPrefix = "_original_";
 static const char * const kLXKVOClassPrefix  = "NSKVONotifying_";
 
-@implementation NSObject (LXDynamicProperty)
-
-+ (void)load
+void LXSetDynamicPropertyPrefix(const char *prefix)
 {
-    LXDynamicPropertyPrefixLength = strlen(LXDynamicPropertyPrefix);
+    LXDynamicPropertyPrefix = prefix;
 }
+
+const char * LXGetDynamicPropertyPrefix()
+{
+    return LXDynamicPropertyPrefix;
+}
+
+@implementation NSObject (LXDynamicProperty)
 
 #pragma mark - 动态方法决议 -
 
@@ -192,9 +197,6 @@ static const char * const kLXKVOClassPrefix  = "NSKVONotifying_";
 {
     BOOL didAdd = [objc_getAssociatedObject(self, _cmd) boolValue];
     if (!didAdd) {
-        printf("__AddDynamicProperty =========== %p %s %s\n",
-               self, class_isMetaClass(self) ? "isMetaClass" : "",
-               class_getName(self));
         objc_setAssociatedObject(self, _cmd, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     return didAdd;
@@ -209,7 +211,7 @@ static BOOL __LXValidateDynamicProperty(objc_property_t property)
     free(dynamic);
 
     const char *propertyName = property_getName(property);
-    return !strncmp(LXDynamicPropertyPrefix, propertyName, LXDynamicPropertyPrefixLength);
+    return !strncmp(LXDynamicPropertyPrefix, propertyName, strlen(LXDynamicPropertyPrefix));
 }
 
 + (void)__lx_addIMPForProperty:(objc_property_t)property
