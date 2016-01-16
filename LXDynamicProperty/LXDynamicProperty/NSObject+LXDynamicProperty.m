@@ -13,15 +13,6 @@
 @import SceneKit.SceneKitTypes;
 #import "NSObject+LXDynamicProperty.h"
 
-@implementation NSNumber (LXCGLoatSupport)
-
-- (CGFloat)CGFloatValue
-{
-    return CGFLOAT_IS_DOUBLE ? [self doubleValue] : [self floatValue];
-}
-
-@end
-
 @interface __LXObjectWrapper : NSObject {
 @public
     __weak id _weakObject;
@@ -49,25 +40,19 @@ typedef struct {
 } LXMethodIMP;
 
 typedef NS_ENUM(NSUInteger, LXBaseType) {
-    LXBaseTypeBOOL,
-    LXBaseTypeCGFloat,
-    LXBaseTypeNSInteger,
-    LXBaseTypeNSUInteger,
-
-    LXBaseTypeInt,
-    LXBaseTypeLong,
+    LXBaseTypeBool,
     LXBaseTypeFloat,
     LXBaseTypeDouble,
+    LXBaseTypeChar,
+    LXBaseTypeInt,
+    LXBaseTypeShort,
+    LXBaseTypeLong,
     LXBaseTypeLongLong,
+    LXBaseTypeUnsignedChar,
+    LXBaseTypeUnsignedShort,
     LXBaseTypeUnsignedInt,
     LXBaseTypeUnsignedLong,
     LXBaseTypeUnsignedLongLong,
-
-    LXBaseTypeBool,
-    LXBaseTypeChar,
-    LXBaseTypeShort,
-    LXBaseTypeUnsignedChar,
-    LXBaseTypeUnsignedShort,
 };
 
 typedef NS_ENUM(NSUInteger, LXStructType) {
@@ -97,25 +82,19 @@ typedef NS_ENUM(NSUInteger, LXStructType) {
 };
 
 static const char * const LXBaseTypeMap[] = {
-    [LXBaseTypeBOOL]             = @encode(BOOL),       // char 或 bool
-    [LXBaseTypeCGFloat]          = @encode(CGFloat),    // float 或 double
-    [LXBaseTypeNSInteger]        = @encode(NSInteger),  // int 或 long
-    [LXBaseTypeNSUInteger]       = @encode(NSUInteger), // unsigned int 或 unsigned long
-
-    [LXBaseTypeInt]              = @encode(int),
-    [LXBaseTypeLong]             = @encode(long),
+    [LXBaseTypeBool]             = @encode(bool),
     [LXBaseTypeFloat]            = @encode(float),
     [LXBaseTypeDouble]           = @encode(double),
+    [LXBaseTypeChar]             = @encode(char),
+    [LXBaseTypeShort]            = @encode(short),
+    [LXBaseTypeInt]              = @encode(int),
+    [LXBaseTypeLong]             = @encode(long),
     [LXBaseTypeLongLong]         = @encode(long long),
+    [LXBaseTypeUnsignedChar]     = @encode(unsigned char),
+    [LXBaseTypeUnsignedShort]    = @encode(unsigned short),
     [LXBaseTypeUnsignedInt]      = @encode(unsigned int),
     [LXBaseTypeUnsignedLong]     = @encode(unsigned long),
     [LXBaseTypeUnsignedLongLong] = @encode(unsigned long long),
-
-    [LXBaseTypeBool]             = @encode(bool),
-    [LXBaseTypeChar]             = @encode(char),
-    [LXBaseTypeShort]            = @encode(short),
-    [LXBaseTypeUnsignedChar]     = @encode(unsigned char),
-    [LXBaseTypeUnsignedShort]    = @encode(unsigned short),
 };
 
 static const char * const LXStructTypeMap[] = {
@@ -435,11 +414,8 @@ LXBaseTypeDynamicIMP(long, long)
 LXBaseTypeDynamicIMP(short, short)
 LXBaseTypeDynamicIMP(float, float)
 LXBaseTypeDynamicIMP(double, double)
-LXBaseTypeDynamicIMP(CGFloat, CGFloat)
-LXBaseTypeDynamicIMP(integer, NSInteger)
 LXBaseTypeDynamicIMP(longLong, long long)
 LXBaseTypeDynamicIMP(unsignedInt, unsigned int)
-LXBaseTypeDynamicIMP(unsignedInteger, NSUInteger)
 LXBaseTypeDynamicIMP(unsignedChar, unsigned char)
 LXBaseTypeDynamicIMP(unsignedLong, unsigned long)
 LXBaseTypeDynamicIMP(unsignedShort, unsigned short)
@@ -516,25 +492,19 @@ LXObjectTypeDynamicIMP_B(id_retain, OBJC_ASSOCIATION_RETAIN_NONATOMIC)
 }
 
 static const LXMethodIMP LXBaseTypeAndIMPMap[] = {
-    [LXBaseTypeBOOL]             = LXMethodIMP(bool),
-    [LXBaseTypeCGFloat]          = LXMethodIMP(CGFloat),
-    [LXBaseTypeNSInteger]        = LXMethodIMP(integer),
-    [LXBaseTypeNSUInteger]       = LXMethodIMP(unsignedInteger),
-
-    [LXBaseTypeInt]              = LXMethodIMP(int),
-    [LXBaseTypeLong]             = LXMethodIMP(long),
+    [LXBaseTypeBool]             = LXMethodIMP(bool),
     [LXBaseTypeFloat]            = LXMethodIMP(float),
     [LXBaseTypeDouble]           = LXMethodIMP(double),
+    [LXBaseTypeChar]             = LXMethodIMP(char),
+    [LXBaseTypeShort]            = LXMethodIMP(short),
+    [LXBaseTypeInt]              = LXMethodIMP(int),
+    [LXBaseTypeLong]             = LXMethodIMP(long),
     [LXBaseTypeLongLong]         = LXMethodIMP(longLong),
+    [LXBaseTypeUnsignedChar]     = LXMethodIMP(unsignedChar),
+    [LXBaseTypeUnsignedShort]    = LXMethodIMP(unsignedShort),
     [LXBaseTypeUnsignedInt]      = LXMethodIMP(unsignedInt),
     [LXBaseTypeUnsignedLong]     = LXMethodIMP(unsignedLong),
     [LXBaseTypeUnsignedLongLong] = LXMethodIMP(unsignedLongLong),
-
-    [LXBaseTypeBool]             = LXMethodIMP(bool),
-    [LXBaseTypeChar]             = LXMethodIMP(char),
-    [LXBaseTypeShort]            = LXMethodIMP(short),
-    [LXBaseTypeUnsignedChar]     = LXMethodIMP(unsignedChar),
-    [LXBaseTypeUnsignedShort]    = LXMethodIMP(unsignedShort),
 };
 
 static const LXMethodIMP LXStructTypeAndIMPMap[] = {
