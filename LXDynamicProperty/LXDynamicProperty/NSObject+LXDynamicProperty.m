@@ -7,9 +7,10 @@
 //
 
 @import UIKit.UIGeometry;
+@import CoreMedia.CMTime;
 @import MapKit.MKGeometry;
 @import ObjectiveC.runtime;
-@import AVFoundation.AVTime;
+@import CoreMedia.CMTimeRange;
 @import SceneKit.SceneKitTypes;
 #import "NSObject+LXDynamicProperty.h"
 
