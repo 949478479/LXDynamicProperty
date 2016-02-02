@@ -1,6 +1,6 @@
 # LXDynamicProperty
 
-创意来自 [NathanLi/iOSCategoryPropertyDynamicSupport](https://github.com/NathanLi/iOSCategoryPropertyDynamicSupport)，按照自己的方式实现了下。
+启发自 [NathanLi/iOSCategoryPropertyDynamicSupport](https://github.com/NathanLi/iOSCategoryPropertyDynamicSupport) 这个项目。
 
 支持 `KVC` 和 `KVO`，支持各种基本类型以及 `NSValue` 支持的结构体。
 
